@@ -1,0 +1,125 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rss-retriever"
+version = "0.1.0"
+description = "RSS feed retrieval and storage system with content extraction and image downloading capabilities"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [
+    { name = "Mike Gray", email = "mike@oscillatelabs.net" }
+]
+keywords = ["rss", "feed", "news", "content-extraction", "image-download"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: News/Diary",
+]
+dependencies = [
+    "aiohttp>=3.9.3",
+    "feedparser>=6.0.11",
+    "lxml[html-clean]>=5.3.1",
+    "newspaper4k>=0.9.3",
+    # The OTEL *API* is a no-op without an SDK installed, so it is safe to depend on
+    # unconditionally. The SDK, exporters and Phoenix live in the `otel` extra.
+    "opentelemetry-api>=1.30.0",
+    "python-json-logger>=3.3.0",
+    "requests>=2.32.3",
+]
+
+[project.optional-dependencies]
+otel = [
+    "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.30.0",
+    "opentelemetry-instrumentation>=0.51b0",
+    "opentelemetry-instrumentation-aiohttp-client>=0.51b0",
+    "opentelemetry-instrumentation-requests>=0.51b0",
+    "opentelemetry-sdk>=1.30.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "types-requests",
+]
+
+[project.urls]
+Repository = "https://github.com/OscillateLabsLLC/rss-retriever"
+Issues = "https://github.com/OscillateLabsLLC/rss-retriever/issues"
+
+[project.scripts]
+rss-retriever = "rss_retriever.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rss_retriever"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --cov=rss_retriever --cov-report=term-missing"
+testpaths = ["tests"]
+markers = [
+    "network: test requires live network access (deselect with '-m \"not network\"')",
+]
+
+[tool.ruff]
+line-length = 119
+target-version = "py312"
+fix = true
+unsafe-fixes = false
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+# Ignore broad-except (E722) and similar rules
+ignore = ["E722", "BLE001"]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "PTH", # flake8-use-pathlib
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "C",   # flake8-comprehensions
+    "DTZ", # flake8-datetimez
+    "EM",  # flake8-errmsg
+    "ICN", # flake8-import-conventions
+    "PL",  # pylint
+    "RUF", # ruff-specific rules
+]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+# Literal expected values are the point of an assertion, and fixtures are often
+# imported inside the test that needs them.
+"tests/**" = ["PLR2004", "PLC0415", "E501"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+combine-as-imports = true
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pylint.messages_control]
+disable = [
+    "W0718", # broad-except
+    "C0415", # import-outside-toplevel
+]
