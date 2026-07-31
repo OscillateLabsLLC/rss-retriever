@@ -16,3 +16,7 @@ jobs:
       - uses: googleapis/release-please-action@v5
         with:
           release-type: python
+          # A PAT, not the default GITHUB_TOKEN: releases created by
+          # github-actions[bot] cannot trigger further workflows, so the publish
+          # job would never fire on `on: release`.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}

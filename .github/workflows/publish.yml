@@ -39,9 +39,6 @@ jobs:
     needs: build
     if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
     runs-on: ubuntu-latest
-    environment: testpypi
-    permissions:
-      id-token: write
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -50,19 +47,17 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.TEST_PYPI_TOKEN || secrets.PYPI_TOKEN }}
 
   pypi:
     needs: build
     if: github.event_name == 'release' || inputs.target == 'pypi'
     runs-on: ubuntu-latest
-    environment: pypi
-    # Trusted Publishing: PyPI verifies this workflow's OIDC identity, so no
-    # long-lived API token is stored in repository secrets.
-    permissions:
-      id-token: write
     steps:
       - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
