@@ -36,6 +36,18 @@ class TestExtraction:
         assert result.content == "Body paragraph one.\n\nBody paragraph two."
         assert result.html_content == SAMPLE_ARTICLE_HTML
 
+    def test_captures_study_references_from_html_and_text(self, article):
+        """Phys.org keeps the DOI in a block the readability pass drops, so HTML counts."""
+        fake = _fake_newspaper_article(text="Body text citing trial NCT04368728.")
+        fake.html = (
+            SAMPLE_ARTICLE_HTML + '<p>More information: <a href="https://doi.org/10.1242/dev.205325">paper</a></p>'
+        )
+        with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
+            result = ContentExtractor().enrich_article(article)
+
+        assert result.dois == ["10.1242/dev.205325"]
+        assert result.trial_ids == ["NCT04368728"]
+
     def test_derives_summary_from_first_paragraph_when_absent(self, article):
         article.summary = ""
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=_fake_newspaper_article()):

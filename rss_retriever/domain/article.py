@@ -39,6 +39,8 @@ class Article:
         html_content (str): HTML version of the article content
         categories (list[str]): list of categories or tags
         images (list[ArticleImage]): list of images associated with the article
+        dois (list[str]): DOIs of the studies the article cites, lowercased
+        trial_ids (list[str]): ClinicalTrials.gov registry IDs the article cites
     """
 
     id: str
@@ -51,6 +53,8 @@ class Article:
     html_content: str = ""
     categories: list[str] = field(default_factory=list)
     images: list[ArticleImage] = field(default_factory=list)
+    dois: list[str] = field(default_factory=list)
+    trial_ids: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert the article to a dictionary format for serialization.
@@ -73,6 +77,8 @@ class Article:
                 {"original_url": img.original_url, "local_path": img.local_path, "caption": img.caption}
                 for img in self.images
             ],
+            "dois": list(self.dois),
+            "trial_ids": list(self.trial_ids),
         }
 
     @classmethod
@@ -96,6 +102,8 @@ class Article:
             content=data.get("content", ""),
             html_content=data.get("html_content", ""),
             categories=data.get("categories", []),
+            dois=data.get("dois", []),
+            trial_ids=data.get("trial_ids", []),
         )
 
         # Add images if present

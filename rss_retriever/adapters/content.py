@@ -9,6 +9,7 @@ import requests
 from newspaper import Article as NewspaperArticle
 
 from rss_retriever.domain.article import Article, ArticleImage
+from rss_retriever.domain.references import find_dois, find_trial_ids
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class ContentExtractor:
             news_article.parse()
 
             self._extract_content(article, news_article)
+            self._extract_references(article, news_article)
             self._extract_images(article, news_article)
 
         except requests.RequestException as e:
@@ -64,6 +66,19 @@ class ContentExtractor:
                 article.summary = paragraphs[0]
 
         logger.info("Successfully extracted %d chars of content", len(article.content))
+
+    def _extract_references(self, article: Article, news_article: NewspaperArticle) -> None:
+        """Record the studies the article cites.
+
+        Science-press sites put the citation in a "More information:" block that
+        the readability pass drops, so the raw HTML is scanned as well as the
+        extracted text.
+        """
+        searchable = f"{news_article.html or ''}\n{news_article.text or ''}"
+        article.dois = find_dois(searchable)
+        article.trial_ids = find_trial_ids(searchable)
+        if article.dois or article.trial_ids:
+            logger.info("Found %d DOIs and %d trial IDs", len(article.dois), len(article.trial_ids))
 
     def _extract_images(self, article: Article, news_article: NewspaperArticle) -> None:
         """Extract images from the article.
