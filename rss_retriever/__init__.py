@@ -12,7 +12,7 @@ from rss_retriever.domain.ports import NewsPort, StoragePort
 from rss_retriever.service.news import NewsService
 
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 __all__ = [
     "Article",
