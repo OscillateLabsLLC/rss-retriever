@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.1.1...v0.2.0) (2026-08-28)
+
+
+### Features
+
+* capture DOIs and trial registry IDs from article HTML ([4ec16ba](https://github.com/OscillateLabsLLC/rss-retriever/commit/4ec16bac15dcbb13bc903db5338f7f235c580b10))
+
 ## [0.1.1](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.1.0...v0.1.1) (2026-07-31)
 
 
