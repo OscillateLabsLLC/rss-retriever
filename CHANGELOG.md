@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.2.2...v0.3.0) (2026-08-29)
+
+
+### Features
+
+* opt-in article-only image scope ([#8](https://github.com/OscillateLabsLLC/rss-retriever/issues/8)) ([e8234d4](https://github.com/OscillateLabsLLC/rss-retriever/commit/e8234d42e176281753d8b482c16b0f6b8b703198))
+
 ## [0.2.2](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.2.1...v0.2.2) (2026-08-29)
 
 
