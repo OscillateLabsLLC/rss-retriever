@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -23,15 +24,21 @@ logger = logging.getLogger(__name__)
 # equality; a real summary is a small fraction of its article.
 BODY_DUPLICATE_RATIO = 0.8
 _LEAD_CHARS = 150
+_ALNUM = re.compile(r"[^a-z0-9]+")
 
 
 def summary_is_the_body(summary: str, body: str) -> bool:
     """True when the feed summary is the article text itself."""
-    norm = lambda s: " ".join(s.split()).lower()  # noqa: E731
-    summary_n, body_n = norm(summary), norm(body)
+    # Tag stripping leaves spaces before punctuation ("Act ,"), so compare on
+    # letters and digits only.
+    summary_n, body_n = _ALNUM.sub("", summary.lower()), _ALNUM.sub("", body.lower())
     if not summary_n or not body_n:
         return False
-    return len(summary_n) >= BODY_DUPLICATE_RATIO * len(body_n) and summary_n[:_LEAD_CHARS] in body_n
+    if len(summary_n) < BODY_DUPLICATE_RATIO * len(body_n):
+        return False
+    # Either opening found in the other: the feed may prepend a caption or
+    # byline the extractor drops, or vice versa.
+    return body_n[:_LEAD_CHARS] in summary_n or summary_n[:_LEAD_CHARS] in body_n
 
 
 class ContentExtractor:

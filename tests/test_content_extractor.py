@@ -58,7 +58,9 @@ class TestExtraction:
     def test_full_content_feed_summary_is_replaced_by_the_lede(self, article):
         """IEEE Spectrum puts the whole article in the summary field; that is a duplicate, not a summary."""
         body = "Lede paragraph of the article.\n\nSecond paragraph with more detail.\n\nThird paragraph."
-        article.summary = body.replace("\n\n", " ")
+        # As a feed delivers it: a caption the extractor drops, and a space the
+        # tag stripper leaves before punctuation.
+        article.summary = "Photo: a fab. " + body.replace("\n\n", " ").replace("article.", "article .")
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=_fake_newspaper_article(text=body)):
             result = ContentExtractor().enrich_article(article)
 
