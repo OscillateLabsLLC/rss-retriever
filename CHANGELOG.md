@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.2.1...v0.2.2) (2026-08-29)
+
+
+### Bug Fixes
+
+* DOIs keep balanced parentheses and lose URL artifacts ([#6](https://github.com/OscillateLabsLLC/rss-retriever/issues/6)) ([c8e3dd5](https://github.com/OscillateLabsLLC/rss-retriever/commit/c8e3dd5961802e54da6a79bfb64fec5df7991444))
+
 ## [0.2.1](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.2.0...v0.2.1) (2026-08-29)
 
 
