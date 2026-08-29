@@ -2,7 +2,6 @@
 
 import hashlib
 import logging
-import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -24,14 +23,17 @@ logger = logging.getLogger(__name__)
 # equality; a real summary is a small fraction of its article.
 BODY_DUPLICATE_RATIO = 0.8
 _LEAD_CHARS = 150
-_ALNUM = re.compile(r"[^a-z0-9]+")
+
+
+def _letters_and_digits(text: str) -> str:
+    return "".join(ch for ch in text.lower() if ch.isalnum())
 
 
 def summary_is_the_body(summary: str, body: str) -> bool:
     """True when the feed summary is the article text itself."""
     # Tag stripping leaves spaces before punctuation ("Act ,"), so compare on
     # letters and digits only.
-    summary_n, body_n = _ALNUM.sub("", summary.lower()), _ALNUM.sub("", body.lower())
+    summary_n, body_n = _letters_and_digits(summary), _letters_and_digits(body)
     if not summary_n or not body_n:
         return False
     if len(summary_n) < BODY_DUPLICATE_RATIO * len(body_n):
