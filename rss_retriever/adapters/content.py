@@ -43,8 +43,23 @@ def summary_is_the_body(summary: str, body: str) -> bool:
     return body_n[:_LEAD_CHARS] in summary_n or summary_n[:_LEAD_CHARS] in body_n
 
 
+# Which images to record for an article. "page" is every image newspaper finds
+# on the page and is the default, because existing deployments expect it.
+# "article" is the lead image plus the images inside the article body: on a
+# news site the page carries ten times as many (logos, icons, sidebar
+# thumbnails of other stories, from the same CDN path as the real one, which
+# no size or URL rule can separate). Measured 2026-08-29: Phys.org 34 -> 3.
+IMAGE_SCOPES = ("page", "article")
+
+
 class ContentExtractor:
     """Service for extracting full content and images from articles"""
+
+    def __init__(self, image_scope: str = "page"):
+        if image_scope not in IMAGE_SCOPES:
+            msg = f"image_scope must be one of {IMAGE_SCOPES}, not {image_scope!r}"
+            raise ValueError(msg)
+        self.image_scope = image_scope
 
     def enrich_article(self, article: Article) -> Article:
         """Add full content and images to an article.
@@ -107,24 +122,18 @@ class ContentExtractor:
             logger.info("Found %d DOIs and %d trial IDs", len(article.dois), len(article.trial_ids))
 
     def _extract_images(self, article: Article, news_article: NewspaperArticle) -> None:
-        """Record the article's own images: the lead image and those inside the body.
-
-        Not every image on the page. A Phys.org page carries ~34 images, of
-        which three belong to the article; the rest are logos, icons, and
-        sidebar thumbnails of other stories served from the same CDN path,
-        which no size or URL rule can tell apart. newspaper already knows
-        which node is the article body, so the rule is "images of the
-        article, not of the page" (measured 2026-08-29: ~10x fewer).
+        """Record the images in scope: the whole page's, or the article's own.
 
         Args:
             article (Article): The article to update with images.
             news_article (NewspaperArticle): The parsed newspaper article.
         """
-        urls = _article_image_urls(news_article)
+        page = list(news_article.images or ())
+        urls = _article_image_urls(news_article) if self.image_scope == "article" else page
         if not urls:
             return
 
-        logger.info("Keeping %d of %d page images", len(urls), len(news_article.images or ()))
+        logger.info("Found %d images (%s scope, %d on the page)", len(urls), self.image_scope, len(page))
         for img_url in urls:
             try:
                 img_hash = hashlib.md5(img_url.encode()).hexdigest()[:10]

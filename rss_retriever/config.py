@@ -93,6 +93,9 @@ class Config:
     log_level: str = "INFO"
     request_timeout: int = 10
     chunk_size: int = 8192
+    # "page" records every image on the page (the long-standing behaviour);
+    # "article" records only the lead image and those inside the article body.
+    image_scope: str = "page"
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -109,4 +112,14 @@ class Config:
             log_level=get_env("LOG_LEVEL", "INFO").upper(),
             request_timeout=get_env("REQUEST_TIMEOUT", 10, int),
             chunk_size=get_env("CHUNK_SIZE", 8192, int),
+            image_scope=_image_scope(get_env("IMAGE_SCOPE", "page")),
         )
+
+
+def _image_scope(value: str) -> str:
+    """An unknown scope keeps the default rather than breaking a run."""
+    scope = value.strip().lower()
+    if scope in ("page", "article"):
+        return scope
+    logger.warning("%sIMAGE_SCOPE must be 'page' or 'article', not %r; using 'page'.", ENV_PREFIX, value)
+    return "page"

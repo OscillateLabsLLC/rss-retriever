@@ -83,7 +83,7 @@ class TestExtraction:
 
 class TestImages:
     def test_maps_images_with_hashed_filenames(self, article):
-        fake = _fake_newspaper_article(top_image="https://example.org/img/figure1.png")
+        fake = _fake_newspaper_article(images=["https://example.org/img/figure1.png"])
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
             result = ContentExtractor().enrich_article(article)
 
@@ -94,7 +94,7 @@ class TestImages:
         assert image.local_path.endswith(".png")
 
     def test_extensionless_image_defaults_to_jpg(self, article):
-        fake = _fake_newspaper_article(top_image="https://example.org/img/generated")
+        fake = _fake_newspaper_article(images=["https://example.org/img/generated"])
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
             result = ContentExtractor().enrich_article(article)
 
@@ -102,7 +102,7 @@ class TestImages:
 
     def test_image_filenames_are_deterministic(self, article):
         """Stable names let a re-run skip images already on disk."""
-        fake = _fake_newspaper_article(top_image="https://example.org/img/figure1.png")
+        fake = _fake_newspaper_article(images=["https://example.org/img/figure1.png"])
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
             first = ContentExtractor().enrich_article(article).images[0].local_path
 
@@ -162,8 +162,8 @@ class TestAgainstLiveSite:
         assert isinstance(result.content, str)
 
 
-class TestArticleImagesOnly:
-    """Measured 2026-08-29: a Phys.org page carries ~34 images, 3 of them the article's."""
+class TestArticleImageScope:
+    """Opt-in. Measured 2026-08-29: a Phys.org page carries ~34 images, 3 of them the article's."""
 
     PAGE = (
         "https://cdn.example/logo.png",
@@ -181,7 +181,7 @@ class TestArticleImagesOnly:
             images=self.PAGE, top_image="https://cdn.example/csz/news/lead.jpg", body_html=self.BODY
         )
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
-            result = ContentExtractor().enrich_article(article)
+            result = ContentExtractor(image_scope="article").enrich_article(article)
 
         assert [i.original_url for i in result.images] == [
             "https://cdn.example/csz/news/lead.jpg",
@@ -195,13 +195,27 @@ class TestArticleImagesOnly:
             images=self.PAGE, top_image="https://cdn.example/csz/news/lead.jpg", body_html=body
         )
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
-            result = ContentExtractor().enrich_article(article)
+            result = ContentExtractor(image_scope="article").enrich_article(article)
 
         assert len(result.images) == 1
 
     def test_page_images_alone_are_not_the_articles(self, article):
         fake = _fake_newspaper_article(images=self.PAGE)
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
-            result = ContentExtractor().enrich_article(article)
+            result = ContentExtractor(image_scope="article").enrich_article(article)
 
         assert result.images == []
+
+    def test_default_scope_is_the_whole_page(self, article):
+        """The published default must not change under existing deployments."""
+        fake = _fake_newspaper_article(
+            images=self.PAGE, top_image="https://cdn.example/csz/news/lead.jpg", body_html=self.BODY
+        )
+        with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
+            result = ContentExtractor().enrich_article(article)
+
+        assert [i.original_url for i in result.images] == list(self.PAGE)
+
+    def test_unknown_scope_is_rejected(self):
+        with pytest.raises(ValueError, match="image_scope"):
+            ContentExtractor(image_scope="everything")

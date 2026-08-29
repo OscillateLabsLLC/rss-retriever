@@ -40,7 +40,7 @@ def main() -> None:
     news_service = NewsService(
         RSSFeedAdapter(config.rss_feeds),
         FileSystemStorage(config.storage_dir, request_timeout=config.request_timeout),
-        ContentExtractor(),
+        ContentExtractor(image_scope=config.image_scope),
     )
 
     logger.info("Starting article fetch...")
