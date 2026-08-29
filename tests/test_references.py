@@ -42,3 +42,22 @@ class TestTrialIds:
 
     def test_dedups(self):
         assert find_trial_ids("NCT04368728, see NCT04368728") == ["NCT04368728"]
+
+
+class TestDoiArtifacts:
+    """Shapes measured on the stored corpus, 2026-08-29: each had been minted as a study."""
+
+    def test_balanced_parentheses_are_part_of_the_doi(self):
+        assert find_dois("see 10.1016/S0140-6736(17)30001-1 for details") == ["10.1016/s0140-6736(17)30001-1"]
+
+    def test_unbalanced_parenthesis_ends_the_match(self):
+        assert find_dois("10.1002/(issn") == []
+
+    def test_url_fragment_and_encoding_are_stripped(self):
+        assert find_dois("https://doi.org/10.1080/00231940.2025.2553441#d1e171") == ["10.1080/00231940.2025.2553441"]
+        assert find_dois("10.1371/journal.pone.0353607%20and") == ["10.1371/journal.pone.0353607"]
+
+    def test_publisher_path_suffix_is_stripped(self):
+        assert find_dois("https://www.degruyter.com/document/doi/10.1525/9780520321373-011/html") == [
+            "10.1525/9780520321373-011"
+        ]
