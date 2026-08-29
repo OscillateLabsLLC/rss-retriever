@@ -49,7 +49,9 @@ class TestArticleMapping:
 
     def test_maps_core_fields(self, feed_file):
         newest = next(
-            a for a in RSSFeedAdapter({"Example Science": str(feed_file)}).fetch_articles() if a.title == "Newest discovery"
+            a
+            for a in RSSFeedAdapter({"Example Science": str(feed_file)}).fetch_articles()
+            if a.title == "Newest discovery"
         )
         assert newest.url == "https://example.org/news/newest"
         assert newest.source_name == "Example Science"
@@ -97,12 +99,28 @@ class TestArticleMapping:
 
     def test_categories_extracted_when_present(self, feed_file):
         newest = next(
-            a for a in RSSFeedAdapter({"Example Science": str(feed_file)}).fetch_articles() if a.title == "Newest discovery"
+            a
+            for a in RSSFeedAdapter({"Example Science": str(feed_file)}).fetch_articles()
+            if a.title == "Newest discovery"
         )
         assert "science" in newest.categories
 
     def test_missing_categories_default_to_empty(self, feed_file):
         older = next(
-            a for a in RSSFeedAdapter({"Example Science": str(feed_file)}).fetch_articles() if a.title == "Older discovery"
+            a
+            for a in RSSFeedAdapter({"Example Science": str(feed_file)}).fetch_articles()
+            if a.title == "Older discovery"
         )
         assert older.categories == []
+
+
+class TestPlainTextSummary:
+    def test_strips_markup_and_entities(self):
+        from rss_retriever.adapters.rss import plain_text_summary
+
+        assert plain_text_summary("<p>Fast &amp; <b>loose</b></p>\n<p>text</p>") == "Fast & loose text"
+
+    def test_plain_summary_is_unchanged(self):
+        from rss_retriever.adapters.rss import plain_text_summary
+
+        assert plain_text_summary("A summary of the newest discovery.") == "A summary of the newest discovery."

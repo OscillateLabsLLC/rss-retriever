@@ -15,6 +15,34 @@ from rss_retriever.domain.references import find_dois, find_trial_ids
 logger = logging.getLogger(__name__)
 
 
+# A full-content feed (IEEE Spectrum, for one) ships the whole article in the
+# summary field. Once the body has been extracted that text is a duplicate, not
+# a summary, and the lede paragraph is the right summary -- exactly as for a
+# feed that sent no summary at all. The extractor may drop a caption or byline
+# the feed kept, so "duplicate" tolerates a shortfall rather than demanding
+# equality; a real summary is a small fraction of its article.
+BODY_DUPLICATE_RATIO = 0.8
+_LEAD_CHARS = 150
+
+
+def _letters_and_digits(text: str) -> str:
+    return "".join(ch for ch in text.lower() if ch.isalnum())
+
+
+def summary_is_the_body(summary: str, body: str) -> bool:
+    """True when the feed summary is the article text itself."""
+    # Tag stripping leaves spaces before punctuation ("Act ,"), so compare on
+    # letters and digits only.
+    summary_n, body_n = _letters_and_digits(summary), _letters_and_digits(body)
+    if not summary_n or not body_n:
+        return False
+    if len(summary_n) < BODY_DUPLICATE_RATIO * len(body_n):
+        return False
+    # Either opening found in the other: the feed may prepend a caption or
+    # byline the extractor drops, or vice versa.
+    return body_n[:_LEAD_CHARS] in summary_n or summary_n[:_LEAD_CHARS] in body_n
+
+
 class ContentExtractor:
     """Service for extracting full content and images from articles"""
 
@@ -60,10 +88,8 @@ class ContentExtractor:
         article.html_content = news_article.html
         article.content = news_article.text
 
-        if not article.summary and news_article.text:
-            paragraphs = news_article.text.split("\n\n")
-            if paragraphs:
-                article.summary = paragraphs[0]
+        if news_article.text and (not article.summary or summary_is_the_body(article.summary, news_article.text)):
+            article.summary = news_article.text.split("\n\n")[0]
 
         logger.info("Successfully extracted %d chars of content", len(article.content))
 

@@ -1,7 +1,9 @@
 """RSS feed adapter implementation."""
 
 import hashlib
+import html
 import logging
+import re
 from calendar import timegm
 from datetime import UTC, datetime
 
@@ -160,4 +162,13 @@ class RSSFeedAdapter(NewsPort):
             summary = entry.summary
         elif hasattr(entry, "description"):
             summary = entry.description
-        return summary
+        return plain_text_summary(summary)
+
+
+_TAG = re.compile(r"<[^>]+>")
+_WHITESPACE = re.compile(r"\s+")
+
+
+def plain_text_summary(raw: str) -> str:
+    """Reduce a feed summary to plain prose: tags and entities are never wanted."""
+    return _WHITESPACE.sub(" ", html.unescape(_TAG.sub(" ", raw))).strip()
