@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.2.0...v0.2.1) (2026-08-29)
+
+
+### Bug Fixes
+
+* plain-text summaries; a summary that duplicates the body is not a summary ([#4](https://github.com/OscillateLabsLLC/rss-retriever/issues/4)) ([e381891](https://github.com/OscillateLabsLLC/rss-retriever/commit/e3818914bed35ceb733f24f3bf0206581d716bc5))
+
 ## [0.2.0](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.1.1...v0.2.0) (2026-08-28)
 
 
