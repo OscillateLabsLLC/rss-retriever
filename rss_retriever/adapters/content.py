@@ -3,7 +3,7 @@
 import hashlib
 import logging
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from newspaper import Article as NewspaperArticle
@@ -43,8 +43,23 @@ def summary_is_the_body(summary: str, body: str) -> bool:
     return body_n[:_LEAD_CHARS] in summary_n or summary_n[:_LEAD_CHARS] in body_n
 
 
+# Which images to record for an article. "page" is every image newspaper finds
+# on the page and is the default, because existing deployments expect it.
+# "article" is the lead image plus the images inside the article body: on a
+# news site the page carries ten times as many (logos, icons, sidebar
+# thumbnails of other stories, from the same CDN path as the real one, which
+# no size or URL rule can separate). Measured 2026-08-29: Phys.org 34 -> 3.
+IMAGE_SCOPES = ("page", "article")
+
+
 class ContentExtractor:
     """Service for extracting full content and images from articles"""
+
+    def __init__(self, image_scope: str = "page"):
+        if image_scope not in IMAGE_SCOPES:
+            msg = f"image_scope must be one of {IMAGE_SCOPES}, not {image_scope!r}"
+            raise ValueError(msg)
+        self.image_scope = image_scope
 
     def enrich_article(self, article: Article) -> Article:
         """Add full content and images to an article.
@@ -107,17 +122,19 @@ class ContentExtractor:
             logger.info("Found %d DOIs and %d trial IDs", len(article.dois), len(article.trial_ids))
 
     def _extract_images(self, article: Article, news_article: NewspaperArticle) -> None:
-        """Extract images from the article.
+        """Record the images in scope: the whole page's, or the article's own.
 
         Args:
             article (Article): The article to update with images.
             news_article (NewspaperArticle): The parsed newspaper article.
         """
-        if not news_article.images:
+        page = list(news_article.images or ())
+        urls = _article_image_urls(news_article) if self.image_scope == "article" else page
+        if not urls:
             return
 
-        logger.info("Found %d images", len(news_article.images))
-        for img_url in news_article.images:
+        logger.info("Found %d images (%s scope, %d on the page)", len(urls), self.image_scope, len(page))
+        for img_url in urls:
             try:
                 img_hash = hashlib.md5(img_url.encode()).hexdigest()[:10]
                 parsed_url = urlparse(img_url)
@@ -130,3 +147,19 @@ class ContentExtractor:
                 logger.error("Error processing image path %s: %s", img_url, e)
             except Exception as e:
                 logger.error("Unexpected error processing image %s: %s", img_url, e)
+
+
+def _article_image_urls(news_article: NewspaperArticle) -> list[str]:
+    """The lead image, then the images inside the article body, in page order, deduplicated."""
+    urls: list[str] = []
+    if news_article.top_image:
+        urls.append(news_article.top_image)
+    body = getattr(news_article, "top_node", None)
+    if body is not None:
+        for img in body.iter("img"):
+            src = img.get("src") or img.get("data-src")
+            if src:
+                # Body sources are often protocol-relative ("//cdn/...") or
+                # relative; the page URL makes them absolute.
+                urls.append(urljoin(news_article.url or "", src.strip()))
+    return list(dict.fromkeys(urls))

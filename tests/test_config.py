@@ -69,3 +69,18 @@ class TestCoercion:
         assert get_env("SOME_FLAG", False, bool) is True
         monkeypatch.setenv("RSS_RETRIEVER_SOME_FLAG", "off")
         assert get_env("SOME_FLAG", True, bool) is False
+
+
+class TestImageScope:
+    def test_default_is_the_whole_page(self, monkeypatch):
+        monkeypatch.delenv("RSS_RETRIEVER_IMAGE_SCOPE", raising=False)
+        assert Config().image_scope == "page"
+        assert Config.from_env().image_scope == "page"
+
+    def test_article_scope_is_opt_in(self, monkeypatch):
+        monkeypatch.setenv("RSS_RETRIEVER_IMAGE_SCOPE", "Article")
+        assert Config.from_env().image_scope == "article"
+
+    def test_unknown_scope_falls_back_to_page(self, monkeypatch):
+        monkeypatch.setenv("RSS_RETRIEVER_IMAGE_SCOPE", "everything")
+        assert Config.from_env().image_scope == "page"
