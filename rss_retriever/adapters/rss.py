@@ -165,18 +165,10 @@ class RSSFeedAdapter(NewsPort):
         return plain_text_summary(summary)
 
 
-# Full-content feeds (IEEE Spectrum, for one) put the entire article, as HTML,
-# in the summary field. A summary is a few sentences of prose, so anything
-# beyond this is the body and belongs in content instead.
-MAX_SUMMARY_CHARS = 1000
 _TAG = re.compile(r"<[^>]+>")
 _WHITESPACE = re.compile(r"\s+")
 
 
 def plain_text_summary(raw: str) -> str:
-    """Reduce a feed summary to plain prose of bounded length."""
-    text = _WHITESPACE.sub(" ", html.unescape(_TAG.sub(" ", raw))).strip()
-    if len(text) <= MAX_SUMMARY_CHARS:
-        return text
-    cut = text.rfind(" ", 0, MAX_SUMMARY_CHARS)
-    return text[: cut if cut > 0 else MAX_SUMMARY_CHARS].rstrip() + "…"
+    """Reduce a feed summary to plain prose: tags and entities are never wanted."""
+    return _WHITESPACE.sub(" ", html.unescape(_TAG.sub(" ", raw))).strip()
