@@ -3,7 +3,7 @@
 import hashlib
 import logging
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from newspaper import Article as NewspaperArticle
@@ -107,17 +107,25 @@ class ContentExtractor:
             logger.info("Found %d DOIs and %d trial IDs", len(article.dois), len(article.trial_ids))
 
     def _extract_images(self, article: Article, news_article: NewspaperArticle) -> None:
-        """Extract images from the article.
+        """Record the article's own images: the lead image and those inside the body.
+
+        Not every image on the page. A Phys.org page carries ~34 images, of
+        which three belong to the article; the rest are logos, icons, and
+        sidebar thumbnails of other stories served from the same CDN path,
+        which no size or URL rule can tell apart. newspaper already knows
+        which node is the article body, so the rule is "images of the
+        article, not of the page" (measured 2026-08-29: ~10x fewer).
 
         Args:
             article (Article): The article to update with images.
             news_article (NewspaperArticle): The parsed newspaper article.
         """
-        if not news_article.images:
+        urls = _article_image_urls(news_article)
+        if not urls:
             return
 
-        logger.info("Found %d images", len(news_article.images))
-        for img_url in news_article.images:
+        logger.info("Keeping %d of %d page images", len(urls), len(news_article.images or ()))
+        for img_url in urls:
             try:
                 img_hash = hashlib.md5(img_url.encode()).hexdigest()[:10]
                 parsed_url = urlparse(img_url)
@@ -130,3 +138,19 @@ class ContentExtractor:
                 logger.error("Error processing image path %s: %s", img_url, e)
             except Exception as e:
                 logger.error("Unexpected error processing image %s: %s", img_url, e)
+
+
+def _article_image_urls(news_article: NewspaperArticle) -> list[str]:
+    """The lead image, then the images inside the article body, in page order, deduplicated."""
+    urls: list[str] = []
+    if news_article.top_image:
+        urls.append(news_article.top_image)
+    body = getattr(news_article, "top_node", None)
+    if body is not None:
+        for img in body.iter("img"):
+            src = img.get("src") or img.get("data-src")
+            if src:
+                # Body sources are often protocol-relative ("//cdn/...") or
+                # relative; the page URL makes them absolute.
+                urls.append(urljoin(news_article.url or "", src.strip()))
+    return list(dict.fromkeys(urls))

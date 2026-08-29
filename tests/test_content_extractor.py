@@ -6,17 +6,24 @@ behaviour: short-circuiting, field mapping, image naming, and error containment.
 
 from unittest.mock import MagicMock, patch
 
+import lxml.html
 import pytest
 
 from rss_retriever.adapters.content import ContentExtractor
 from tests.conftest import SAMPLE_ARTICLE_HTML
 
 
-def _fake_newspaper_article(text="Body paragraph one.\n\nBody paragraph two.", images=()):
+def _fake_newspaper_article(
+    text="Body paragraph one.\n\nBody paragraph two.", images=(), top_image=None, body_html=None
+):
+    """images is what newspaper saw on the whole page; top_image and body_html are the article's own."""
     fake = MagicMock()
+    fake.url = "https://example.org/news/story.html"
     fake.html = SAMPLE_ARTICLE_HTML
     fake.text = text
     fake.images = list(images)
+    fake.top_image = top_image
+    fake.top_node = lxml.html.fromstring(body_html) if body_html else None
     return fake
 
 
@@ -76,7 +83,7 @@ class TestExtraction:
 
 class TestImages:
     def test_maps_images_with_hashed_filenames(self, article):
-        fake = _fake_newspaper_article(images=["https://example.org/img/figure1.png"])
+        fake = _fake_newspaper_article(top_image="https://example.org/img/figure1.png")
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
             result = ContentExtractor().enrich_article(article)
 
@@ -87,7 +94,7 @@ class TestImages:
         assert image.local_path.endswith(".png")
 
     def test_extensionless_image_defaults_to_jpg(self, article):
-        fake = _fake_newspaper_article(images=["https://example.org/img/generated"])
+        fake = _fake_newspaper_article(top_image="https://example.org/img/generated")
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
             result = ContentExtractor().enrich_article(article)
 
@@ -95,7 +102,7 @@ class TestImages:
 
     def test_image_filenames_are_deterministic(self, article):
         """Stable names let a re-run skip images already on disk."""
-        fake = _fake_newspaper_article(images=["https://example.org/img/figure1.png"])
+        fake = _fake_newspaper_article(top_image="https://example.org/img/figure1.png")
         with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
             first = ContentExtractor().enrich_article(article).images[0].local_path
 
@@ -153,3 +160,48 @@ class TestAgainstLiveSite:
         )
         result = ContentExtractor().enrich_article(live)
         assert isinstance(result.content, str)
+
+
+class TestArticleImagesOnly:
+    """Measured 2026-08-29: a Phys.org page carries ~34 images, 3 of them the article's."""
+
+    PAGE = (
+        "https://cdn.example/logo.png",
+        "https://cdn.example/csz/news/other-story.jpg",
+        "https://cdn.example/csz/news/lead.jpg",
+        "https://cdn.example/csz/news/figure.jpg",
+    )
+    BODY = (
+        '<div><p>Text.</p><figure><img src="//cdn.example/csz/news/figure.jpg"></figure>'
+        '<p>More.</p><img data-src="/gfx/profiles/author.jpg"></div>'
+    )
+
+    def test_keeps_lead_and_body_images_and_drops_the_rest_of_the_page(self, article):
+        fake = _fake_newspaper_article(
+            images=self.PAGE, top_image="https://cdn.example/csz/news/lead.jpg", body_html=self.BODY
+        )
+        with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
+            result = ContentExtractor().enrich_article(article)
+
+        assert [i.original_url for i in result.images] == [
+            "https://cdn.example/csz/news/lead.jpg",
+            "https://cdn.example/csz/news/figure.jpg",  # protocol-relative src made absolute
+            "https://example.org/gfx/profiles/author.jpg",  # relative data-src resolved against the page
+        ]
+
+    def test_lead_image_repeated_in_body_is_stored_once(self, article):
+        body = '<div><img src="https://cdn.example/csz/news/lead.jpg"><p>Text.</p></div>'
+        fake = _fake_newspaper_article(
+            images=self.PAGE, top_image="https://cdn.example/csz/news/lead.jpg", body_html=body
+        )
+        with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
+            result = ContentExtractor().enrich_article(article)
+
+        assert len(result.images) == 1
+
+    def test_page_images_alone_are_not_the_articles(self, article):
+        fake = _fake_newspaper_article(images=self.PAGE)
+        with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
+            result = ContentExtractor().enrich_article(article)
+
+        assert result.images == []
