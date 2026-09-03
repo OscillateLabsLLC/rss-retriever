@@ -111,6 +111,7 @@ environment entirely.
 | `RSS_RETRIEVER_REQUEST_TIMEOUT`       | `10`              | Per-request timeout in seconds                  |
 | `RSS_RETRIEVER_CHUNK_SIZE`            | `8192`            | Download chunk size in bytes                    |
 | `RSS_RETRIEVER_IMAGE_SCOPE`           | `page`            | `page`: every image on the page; `article`: the lead image plus those inside the article body |
+| `RSS_RETRIEVER_IMPERSONATE`           | `chrome`          | Browser whose TLS fingerprint article fetches present (a [curl_cffi](https://github.com/lexiforest/curl_cffi) name); empty leaves the download to newspaper |
 
 There are no default feeds: a library should not fetch anything the caller did not ask for.
 `rss_retriever.config.EXAMPLE_FEEDS` holds a starting set if you want one.

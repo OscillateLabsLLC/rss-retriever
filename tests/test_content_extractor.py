@@ -10,7 +10,20 @@ import lxml.html
 import pytest
 
 from rss_retriever.adapters.content import ContentExtractor
+from rss_retriever.domain.ports import PagePort
 from tests.conftest import SAMPLE_ARTICLE_HTML
+
+
+class FakePage(PagePort):
+    """A page port that answers from memory and remembers what it was asked."""
+
+    def __init__(self, html=None):
+        self.html = html
+        self.fetched = []
+
+    def fetch(self, url):
+        self.fetched.append(url)
+        return self.html
 
 
 def _fake_newspaper_article(
@@ -33,6 +46,32 @@ class TestShortCircuit:
         with patch("rss_retriever.adapters.content.NewspaperArticle") as newspaper:
             ContentExtractor().enrich_article(enriched_article)
         newspaper.assert_not_called()
+
+
+class TestPageFetch:
+    def test_hands_the_ports_html_to_newspaper(self, article):
+        """When the page port has the page, newspaper parses that instead of downloading."""
+        page = FakePage("<html><body>fetched</body></html>")
+        fake = _fake_newspaper_article()
+        with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
+            ContentExtractor(page=page).enrich_article(article)
+
+        assert page.fetched == [article.url]
+        fake.download.assert_called_once_with(input_html="<html><body>fetched</body></html>")
+
+    def test_port_that_comes_back_empty_leaves_the_download_to_newspaper(self, article):
+        fake = _fake_newspaper_article()
+        with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
+            ContentExtractor(page=FakePage(None)).enrich_article(article)
+
+        fake.download.assert_called_once_with(input_html=None)
+
+    def test_no_port_means_newspaper_downloads(self, article):
+        fake = _fake_newspaper_article()
+        with patch("rss_retriever.adapters.content.NewspaperArticle", return_value=fake):
+            ContentExtractor().enrich_article(article)
+
+        fake.download.assert_called_once_with(input_html=None)
 
 
 class TestExtraction:

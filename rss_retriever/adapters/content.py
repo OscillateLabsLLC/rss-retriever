@@ -9,7 +9,7 @@ import requests
 from newspaper import Article as NewspaperArticle
 
 from rss_retriever.domain.article import Article, ArticleImage
-from rss_retriever.domain.ports import ContentPort
+from rss_retriever.domain.ports import ContentPort, PagePort
 from rss_retriever.domain.references import find_dois, find_trial_ids
 
 
@@ -56,11 +56,13 @@ IMAGE_SCOPES = ("page", "article")
 class ContentExtractor(ContentPort):
     """Extracts full content and images from the article's page with newspaper4k."""
 
-    def __init__(self, image_scope: str = "page"):
+    def __init__(self, image_scope: str = "page", page: PagePort | None = None):
+        """``page`` fetches the article HTML; without one, newspaper downloads it itself."""
         if image_scope not in IMAGE_SCOPES:
             msg = f"image_scope must be one of {IMAGE_SCOPES}, not {image_scope!r}"
             raise ValueError(msg)
         self.image_scope = image_scope
+        self.page = page
 
     def enrich_article(self, article: Article) -> Article:
         """Add full content and images to an article.
@@ -78,7 +80,9 @@ class ContentExtractor(ContentPort):
         try:
             logger.info("Extracting content from %s", article.url)
             news_article = NewspaperArticle(article.url)
-            news_article.download()
+            # The page port goes first; None hands the download to newspaper.
+            html = self.page.fetch(article.url) if self.page else None
+            news_article.download(input_html=html)
             news_article.parse()
 
             self._extract_content(article, news_article)

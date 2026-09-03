@@ -47,6 +47,29 @@ class ContentPort(ABC):
         raise NotImplementedError
 
 
+class PagePort(ABC):
+    """Abstract interface for fetching a web page's HTML.
+
+    Content extraction needs the page before it can parse it, and how the page
+    is fetched is a deployment concern: a plain HTTP client, one that presents a
+    browser's TLS fingerprint, one that paces requests per host. Implementations
+    return ``None`` when they could not get the page, so the caller can try
+    another way.
+    """
+
+    @abstractmethod
+    def fetch(self, url: str) -> str | None:
+        """Fetch the page at ``url``.
+
+        Args:
+            url (str): The page to fetch.
+
+        Returns:
+            str | None: The page HTML, or None if it could not be fetched.
+        """
+        raise NotImplementedError
+
+
 class StoragePort(ABC):
     """Abstract interface for storing and retrieving articles.
 
