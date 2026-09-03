@@ -84,3 +84,17 @@ class TestImageScope:
     def test_unknown_scope_falls_back_to_page(self, monkeypatch):
         monkeypatch.setenv("RSS_RETRIEVER_IMAGE_SCOPE", "everything")
         assert Config.from_env().image_scope == "page"
+
+
+class TestHostIntervals:
+    def test_defaults_to_no_pacing(self, monkeypatch):
+        monkeypatch.delenv("RSS_RETRIEVER_HOST_INTERVALS", raising=False)
+        assert Config.from_env().host_intervals == {}
+
+    def test_reads_a_json_object_of_seconds(self, monkeypatch):
+        monkeypatch.setenv("RSS_RETRIEVER_HOST_INTERVALS", '{"thehill.com": 180, "politico.com": 2.5}')
+        assert Config.from_env().host_intervals == {"thehill.com": 180.0, "politico.com": 2.5}
+
+    def test_drops_entries_that_are_not_non_negative_numbers(self, monkeypatch):
+        monkeypatch.setenv("RSS_RETRIEVER_HOST_INTERVALS", '{"thehill.com": "slow", "x.com": -1, "ok.com": 0}')
+        assert Config.from_env().host_intervals == {"ok.com": 0.0}

@@ -69,6 +69,7 @@ even if the block raises. On a 5,000-article import this is roughly 12x faster.
 | `RSSFeedAdapter`          | `NewsPort` implementation backed by feedparser                          |
 | `ContentExtractor`        | `ContentPort` implementation: full text and images via newspaper4k      |
 | `BrowserPageFetcher`      | `PagePort` implementation presenting a browser's TLS fingerprint        |
+| `PacedPageFetcher`        | `PagePort` decorator enforcing a minimum interval per host              |
 | `AiohttpImageFetcher`     | `ImagePort` implementation downloading images concurrently              |
 | `FileSystemStorage`       | `StoragePort` implementation writing to disk                            |
 | `NewsPort`, `ContentPort`, `PagePort`, `ImagePort`, `StoragePort` | Abstract ports for custom implementations |
@@ -114,6 +115,7 @@ environment entirely.
 | `RSS_RETRIEVER_CHUNK_SIZE`            | `8192`            | Download chunk size in bytes                    |
 | `RSS_RETRIEVER_IMAGE_SCOPE`           | `page`            | `page`: every image on the page; `article`: the lead image plus those inside the article body |
 | `RSS_RETRIEVER_IMPERSONATE`           | `chrome`          | Browser whose TLS fingerprint article fetches present (a [curl_cffi](https://github.com/lexiforest/curl_cffi) name); empty leaves the download to newspaper |
+| `RSS_RETRIEVER_HOST_INTERVALS`        | `{}`              | JSON object of host to minimum seconds between page fetches, e.g. `{"thehill.com": 180}`, for sites that rate-limit bursts |
 
 There are no default feeds: a library should not fetch anything the caller did not ask for.
 `rss_retriever.config.EXAMPLE_FEEDS` holds a starting set if you want one.

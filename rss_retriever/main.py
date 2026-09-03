@@ -5,9 +5,11 @@ import logging
 from rss_retriever.adapters.content import ContentExtractor
 from rss_retriever.adapters.fetch import BrowserPageFetcher
 from rss_retriever.adapters.images import AiohttpImageFetcher
+from rss_retriever.adapters.pacing import PacedPageFetcher
 from rss_retriever.adapters.rss import RSSFeedAdapter
 from rss_retriever.adapters.storage import FileSystemStorage
 from rss_retriever.config import Config
+from rss_retriever.domain.ports import PagePort
 from rss_retriever.service.news import NewsService
 
 
@@ -39,9 +41,11 @@ def main() -> None:
         )
         raise SystemExit(1)
 
-    page_fetcher = (
-        BrowserPageFetcher(config.impersonate, timeout=config.request_timeout) if config.impersonate else None
-    )
+    page_fetcher: PagePort | None = None
+    if config.impersonate:
+        page_fetcher = BrowserPageFetcher(config.impersonate, timeout=config.request_timeout)
+        if config.host_intervals:
+            page_fetcher = PacedPageFetcher(page_fetcher, config.host_intervals)
     news_service = NewsService(
         RSSFeedAdapter(config.rss_feeds),
         FileSystemStorage(config.storage_dir, images=AiohttpImageFetcher(timeout=config.request_timeout)),
