@@ -1,6 +1,7 @@
 """Page fetching with a browser's TLS fingerprint."""
 
 import logging
+from http import HTTPStatus
 
 from curl_cffi import requests as curl_requests
 
@@ -8,8 +9,6 @@ from rss_retriever.domain.ports import PagePort
 
 
 logger = logging.getLogger(__name__)
-
-HTTP_OK = 200
 
 
 class BrowserPageFetcher(PagePort):
@@ -34,7 +33,7 @@ class BrowserPageFetcher(PagePort):
         except Exception as e:
             logger.warning("Browser-fingerprint fetch failed for %s: %s", url, e)
             return None
-        if response.status_code != HTTP_OK:
+        if response.status_code != HTTPStatus.OK:
             logger.warning("Browser-fingerprint fetch of %s returned %d", url, response.status_code)
             return None
         return response.text

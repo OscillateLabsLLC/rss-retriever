@@ -63,14 +63,16 @@ even if the block raises. On a 5,000-article import this is roughly 12x faster.
 
 ### Public API
 
-| Object                    | Role                                            |
-| ------------------------- | ----------------------------------------------- |
-| `NewsService`             | Orchestrates fetch, extract, and store          |
-| `RSSFeedAdapter`          | `NewsPort` implementation backed by feedparser  |
-| `ContentExtractor`        | Full-text and image extraction via newspaper4k  |
-| `FileSystemStorage`       | `StoragePort` implementation writing to disk    |
-| `NewsPort`, `StoragePort` | Abstract ports for custom implementations       |
-| `Article`, `ArticleImage` | Domain models, with `to_dict()` / `from_dict()` |
+| Object                    | Role                                                                    |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `NewsService`             | Orchestrates fetch, extract, and store                                  |
+| `RSSFeedAdapter`          | `NewsPort` implementation backed by feedparser                          |
+| `ContentExtractor`        | `ContentPort` implementation: full text and images via newspaper4k      |
+| `BrowserPageFetcher`      | `PagePort` implementation presenting a browser's TLS fingerprint        |
+| `AiohttpImageFetcher`     | `ImagePort` implementation downloading images concurrently              |
+| `FileSystemStorage`       | `StoragePort` implementation writing to disk                            |
+| `NewsPort`, `ContentPort`, `PagePort`, `ImagePort`, `StoragePort` | Abstract ports for custom implementations |
+| `Article`, `ArticleImage` | Domain models, with `to_dict()` / `from_dict()`                         |
 
 ### Custom backends
 

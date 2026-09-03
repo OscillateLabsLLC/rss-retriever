@@ -70,6 +70,27 @@ class PagePort(ABC):
         raise NotImplementedError
 
 
+class ImagePort(ABC):
+    """Abstract interface for fetching image bytes.
+
+    Storage decides where an article's images live; this port only gets the
+    bytes. Implementations might download over HTTP, read a cache, or return
+    nothing for a deployment that keeps text only.
+    """
+
+    @abstractmethod
+    def fetch_many(self, urls: list[str]) -> list[bytes | None]:
+        """Fetch several images.
+
+        Args:
+            urls (list[str]): The image URLs, in order.
+
+        Returns:
+            list[bytes | None]: One entry per URL, None where the fetch failed.
+        """
+        raise NotImplementedError
+
+
 class StoragePort(ABC):
     """Abstract interface for storing and retrieving articles.
 

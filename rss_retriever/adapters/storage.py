@@ -1,34 +1,39 @@
 """File system storage adapter implementation."""
 
-import asyncio
 import json
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-import aiohttp
-import requests
-
-from rss_retriever.config import Config
+from rss_retriever.adapters.images import AiohttpImageFetcher
 from rss_retriever.domain.article import Article
-from rss_retriever.domain.ports import StoragePort
+from rss_retriever.domain.ports import ImagePort, StoragePort
 
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_REQUEST_TIMEOUT = 10
 
 
 class FileSystemStorage(StoragePort):
     """Implementation of StoragePort using the file system"""
 
-    def __init__(self, storage_dir: str | Path, request_timeout: int = Config.request_timeout):
+    def __init__(
+        self,
+        storage_dir: str | Path,
+        request_timeout: int = DEFAULT_REQUEST_TIMEOUT,
+        images: ImagePort | None = None,
+    ):
         """Initialize with storage directory.
 
         Args:
             storage_dir (str | Path): Path to the directory where articles will be stored.
-            request_timeout (int): Per-request timeout, in seconds, for image downloads.
+            request_timeout (int): Per-request timeout, in seconds, for the default image fetcher.
+            images (ImagePort | None): Where image bytes come from. Defaults to an HTTP fetcher.
         """
         self.request_timeout = request_timeout
+        self.images = images or AiohttpImageFetcher(timeout=request_timeout)
         self.storage_dir = Path(storage_dir)
         self.storage_dir.mkdir(exist_ok=True)
 
@@ -74,58 +79,22 @@ class FileSystemStorage(StoragePort):
             if self._url_index_cache is not None:
                 self._write_url_index(self._url_index_cache)
 
-    async def _download_image(self, session: aiohttp.ClientSession, image_url: str, img_path: Path) -> bool:
-        """Download a single image asynchronously.
-
-        Args:
-            session (aiohttp.ClientSession): The aiohttp session to use
-            image_url (str): URL of the image to download
-            img_path (Path): Where to save the image
-
-        Returns:
-            bool: True if download was successful, False otherwise
-        """
-        try:
-            timeout = aiohttp.ClientTimeout(total=self.request_timeout)
-            async with session.get(image_url, timeout=timeout) as response:
-                if response.status == requests.codes["ok"]:
-                    content = await response.read()
-                    img_path.write_bytes(content)
-                    logger.info("Saved image: %s", img_path)
-                    return True
-                logger.warning("Failed to download image: %s, status: %d", image_url, response.status)
-                return False
-        except Exception as e:
-            logger.error("Error downloading image %s: %s", image_url, e)
-            return False
-
-    async def _download_images(self, article: Article, images_dir: Path) -> None:
-        """Download all images for an article concurrently.
-
-        Args:
-            article (Article): The article containing images to download
-            images_dir (Path): Directory to save images in
-        """
-        # Configure connection pooling
-        conn = aiohttp.TCPConnector(limit=10)  # Limit concurrent connections
-        timeout = aiohttp.ClientTimeout(total=self.request_timeout)
-
-        async with aiohttp.ClientSession(connector=conn, timeout=timeout) as session:
-            # Prepare download tasks
-            tasks = []
-            for i, image in enumerate(article.images):
-                img_path = images_dir / image.local_path
-                if not img_path.exists():
-                    tasks.append((i, self._download_image(session, image.original_url, img_path)))
-
-            # Run downloads concurrently with gather
-            if tasks:
-                results = await asyncio.gather(*[task for _, task in tasks], return_exceptions=True)
-
-                # Update successful downloads
-                for (i, _), success in zip(tasks, results, strict=True):
-                    if isinstance(success, bool) and success:
-                        article.images[i].local_path = f"images/{article.images[i].local_path}"
+    def _save_images(self, article: Article, images_dir: Path) -> None:
+        """Fetch the article's images that are not on disk yet and record where they landed."""
+        pending = [
+            (i, images_dir / image.local_path)
+            for i, image in enumerate(article.images)
+            if not (images_dir / image.local_path).exists()
+        ]
+        if not pending:
+            return
+        fetched = self.images.fetch_many([article.images[i].original_url for i, _ in pending])
+        for (i, img_path), content in zip(pending, fetched, strict=True):
+            if content is None:
+                continue
+            img_path.write_bytes(content)
+            article.images[i].local_path = f"images/{article.images[i].local_path}"
+            logger.info("Saved image: %s", img_path)
 
     def save_article(self, article: Article) -> None:
         """Save an article with its images to the filesystem.
@@ -141,8 +110,7 @@ class FileSystemStorage(StoragePort):
         images_dir = article_dir / "images"
         images_dir.mkdir(exist_ok=True)
 
-        # Download images concurrently
-        asyncio.run(self._download_images(article, images_dir))
+        self._save_images(article, images_dir)
 
         # Save article content
         content_file = article_dir / "content.txt"
