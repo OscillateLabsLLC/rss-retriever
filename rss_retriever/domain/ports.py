@@ -26,6 +26,27 @@ class NewsPort(ABC):
         raise NotImplementedError
 
 
+class ContentPort(ABC):
+    """Abstract interface for enriching an article with its full content.
+
+    The feed gives a title, a link and usually a summary; this port fills in the
+    body, the images and the references. Implementations might parse the page,
+    call an extraction API, or do nothing for a feed that ships full content.
+    """
+
+    @abstractmethod
+    def enrich_article(self, article: Article) -> Article:
+        """Add full content and images to an article.
+
+        Args:
+            article (Article): The article to enrich.
+
+        Returns:
+            Article: The same article, enriched where extraction succeeded.
+        """
+        raise NotImplementedError
+
+
 class StoragePort(ABC):
     """Abstract interface for storing and retrieving articles.
 

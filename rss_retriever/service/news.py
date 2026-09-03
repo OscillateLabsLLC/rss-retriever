@@ -4,9 +4,8 @@ import logging
 
 from opentelemetry import trace
 
-from rss_retriever.adapters.content import ContentExtractor
 from rss_retriever.domain.article import Article
-from rss_retriever.domain.ports import NewsPort, StoragePort
+from rss_retriever.domain.ports import ContentPort, NewsPort, StoragePort
 
 
 logger = logging.getLogger(__name__)
@@ -16,13 +15,13 @@ tracer = trace.get_tracer(__name__)
 class NewsService:
     """Core application service that coordinates the ports"""
 
-    def __init__(self, news_adapter: NewsPort, storage_adapter: StoragePort, content_extractor: ContentExtractor):
+    def __init__(self, news_adapter: NewsPort, storage_adapter: StoragePort, content_extractor: ContentPort):
         """Initialize the news service.
 
         Args:
             news_adapter (NewsPort): Adapter for fetching articles from news sources
             storage_adapter (StoragePort): Adapter for storing and retrieving articles
-            content_extractor (ContentExtractor): Service for extracting article content
+            content_extractor (ContentPort): Adapter for enriching articles with their content
         """
         self.news_adapter = news_adapter
         self.storage_adapter = storage_adapter

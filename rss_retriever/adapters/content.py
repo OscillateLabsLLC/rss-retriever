@@ -9,6 +9,7 @@ import requests
 from newspaper import Article as NewspaperArticle
 
 from rss_retriever.domain.article import Article, ArticleImage
+from rss_retriever.domain.ports import ContentPort
 from rss_retriever.domain.references import find_dois, find_trial_ids
 
 
@@ -52,8 +53,8 @@ def summary_is_the_body(summary: str, body: str) -> bool:
 IMAGE_SCOPES = ("page", "article")
 
 
-class ContentExtractor:
-    """Service for extracting full content and images from articles"""
+class ContentExtractor(ContentPort):
+    """Extracts full content and images from the article's page with newspaper4k."""
 
     def __init__(self, image_scope: str = "page"):
         if image_scope not in IMAGE_SCOPES:
