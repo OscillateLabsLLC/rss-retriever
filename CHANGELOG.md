@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.3.0...v0.4.0) (2026-09-03)
+
+
+### Features
+
+* fetch article pages through a PagePort with a browser's TLS fingerprint ([#10](https://github.com/OscillateLabsLLC/rss-retriever/issues/10)) ([5af36d8](https://github.com/OscillateLabsLLC/rss-retriever/commit/5af36d8a463319b5c999e9a5ae891241f4db9986))
+
 ## [0.3.0](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.2.2...v0.3.0) (2026-08-29)
 
 
