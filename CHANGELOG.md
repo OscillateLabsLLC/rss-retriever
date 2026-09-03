@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.4.0...v0.5.0) (2026-09-03)
+
+
+### Features
+
+* pace page fetches per host for sites that rate-limit bursts ([#14](https://github.com/OscillateLabsLLC/rss-retriever/issues/14)) ([3078bac](https://github.com/OscillateLabsLLC/rss-retriever/commit/3078bacb636bd8f914fd93867d23f15aa2ab3074))
+
 ## [0.4.0](https://github.com/OscillateLabsLLC/rss-retriever/compare/v0.3.0...v0.4.0) (2026-09-03)
 
 
