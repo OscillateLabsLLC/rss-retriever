@@ -14,12 +14,11 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import cast
 
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
 
 ENV_PREFIX = "RSS_RETRIEVER_"
 LEGACY_ENV_PREFIX = "MARVIN_"
@@ -54,7 +53,7 @@ def _read_env(suffix: str) -> str | None:
     return legacy
 
 
-def get_env(suffix: str, default: T, type_cast: type = str) -> T:
+def get_env[T](suffix: str, default: T, type_cast: type = str) -> T:
     """Get an environment variable with type casting and a default.
 
     Falls back to the default if the variable is unset or cannot be coerced.

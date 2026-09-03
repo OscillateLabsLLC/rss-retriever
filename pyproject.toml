@@ -108,6 +108,10 @@ fixable = ["ALL"]
 # Literal expected values are the point of an assertion, and fixtures are often
 # imported inside the test that needs them.
 "tests/**" = ["PLR2004", "PLC0415", "E501"]
+# Tracing is an optional extra: its imports are deliberately deferred so the
+# package imports without the OTEL SDK installed.
+"rss_retriever/main.py" = ["PLC0415"]
+"rss_retriever/telemetry.py" = ["PLC0415"]
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2
