@@ -15,7 +15,7 @@ from rss_retriever.domain.ports import ContentPort, ImagePort, NewsPort, PagePor
 from rss_retriever.service.news import NewsService
 
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "AiohttpImageFetcher",
