@@ -12,7 +12,7 @@ PNG_BYTES = b"\x89PNG fake image bytes"
 
 
 class _ImageHandler(BaseHTTPRequestHandler):
-    def do_GET(self):  # noqa: N802 - http.server API
+    def do_GET(self):
         if self.path == "/ok.png":
             self.send_response(200)
             self.send_header("Content-Type", "image/png")

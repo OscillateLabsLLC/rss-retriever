@@ -81,6 +81,7 @@ Implement `StoragePort` to store somewhere other than the filesystem:
 ```python
 from rss_retriever import StoragePort
 
+
 class S3Storage(StoragePort):
     def save_article(self, article): ...
     def get_article(self, article_id): ...
