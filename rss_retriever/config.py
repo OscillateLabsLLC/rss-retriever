@@ -98,6 +98,9 @@ class Config:
     # Browser whose TLS fingerprint article fetches present (a curl_cffi name such
     # as "chrome", "safari", "firefox"); empty leaves the download to newspaper.
     impersonate: str = "chrome"
+    # Minimum seconds between page fetches to the same host, keyed by host
+    # ("thehill.com"); hosts not listed are not paced.
+    host_intervals: dict[str, float] = field(default_factory=dict)
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -116,7 +119,19 @@ class Config:
             chunk_size=get_env("CHUNK_SIZE", 8192, int),
             image_scope=_image_scope(get_env("IMAGE_SCOPE", "page")),
             impersonate=get_env("IMPERSONATE", "chrome").strip(),
+            host_intervals=_host_intervals(get_env("HOST_INTERVALS", {}, dict)),
         )
+
+
+def _host_intervals(value: dict) -> dict[str, float]:
+    """Keep only host -> non-negative number pairs; anything else is logged and dropped."""
+    intervals: dict[str, float] = {}
+    for host, seconds in value.items():
+        if isinstance(seconds, int | float) and not isinstance(seconds, bool) and seconds >= 0:
+            intervals[str(host)] = float(seconds)
+        else:
+            logger.warning("%sHOST_INTERVALS: ignoring %r: %r (want seconds >= 0).", ENV_PREFIX, host, seconds)
+    return intervals
 
 
 def _image_scope(value: str) -> str:

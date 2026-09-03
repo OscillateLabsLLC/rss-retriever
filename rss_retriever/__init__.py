@@ -7,6 +7,7 @@ including content extraction and image downloading capabilities.
 from rss_retriever.adapters.content import ContentExtractor
 from rss_retriever.adapters.fetch import BrowserPageFetcher
 from rss_retriever.adapters.images import AiohttpImageFetcher
+from rss_retriever.adapters.pacing import PacedPageFetcher
 from rss_retriever.adapters.rss import RSSFeedAdapter
 from rss_retriever.adapters.storage import FileSystemStorage
 from rss_retriever.domain.article import Article, ArticleImage
@@ -27,6 +28,7 @@ __all__ = [
     "ImagePort",
     "NewsPort",
     "NewsService",
+    "PacedPageFetcher",
     "PagePort",
     "RSSFeedAdapter",
     "StoragePort",
