@@ -96,6 +96,9 @@ class Config:
     # "page" records every image on the page (the long-standing behaviour);
     # "article" records only the lead image and those inside the article body.
     image_scope: str = "page"
+    # Browser whose TLS fingerprint article fetches present (a curl_cffi name such
+    # as "chrome", "safari", "firefox"); empty leaves the download to newspaper.
+    impersonate: str = "chrome"
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -113,6 +116,7 @@ class Config:
             request_timeout=get_env("REQUEST_TIMEOUT", 10, int),
             chunk_size=get_env("CHUNK_SIZE", 8192, int),
             image_scope=_image_scope(get_env("IMAGE_SCOPE", "page")),
+            impersonate=get_env("IMPERSONATE", "chrome").strip(),
         )
 
 

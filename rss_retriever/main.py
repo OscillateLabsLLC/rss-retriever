@@ -3,6 +3,7 @@
 import logging
 
 from rss_retriever.adapters.content import ContentExtractor
+from rss_retriever.adapters.fetch import BrowserPageFetcher
 from rss_retriever.adapters.rss import RSSFeedAdapter
 from rss_retriever.adapters.storage import FileSystemStorage
 from rss_retriever.config import Config
@@ -37,10 +38,13 @@ def main() -> None:
         )
         raise SystemExit(1)
 
+    page_fetcher = (
+        BrowserPageFetcher(config.impersonate, timeout=config.request_timeout) if config.impersonate else None
+    )
     news_service = NewsService(
         RSSFeedAdapter(config.rss_feeds),
         FileSystemStorage(config.storage_dir, request_timeout=config.request_timeout),
-        ContentExtractor(image_scope=config.image_scope),
+        ContentExtractor(image_scope=config.image_scope, page=page_fetcher),
     )
 
     logger.info("Starting article fetch...")
