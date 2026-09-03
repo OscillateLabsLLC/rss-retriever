@@ -4,6 +4,7 @@ import logging
 
 from rss_retriever.adapters.content import ContentExtractor
 from rss_retriever.adapters.fetch import BrowserPageFetcher
+from rss_retriever.adapters.images import AiohttpImageFetcher
 from rss_retriever.adapters.rss import RSSFeedAdapter
 from rss_retriever.adapters.storage import FileSystemStorage
 from rss_retriever.config import Config
@@ -43,7 +44,7 @@ def main() -> None:
     )
     news_service = NewsService(
         RSSFeedAdapter(config.rss_feeds),
-        FileSystemStorage(config.storage_dir, request_timeout=config.request_timeout),
+        FileSystemStorage(config.storage_dir, images=AiohttpImageFetcher(timeout=config.request_timeout)),
         ContentExtractor(image_scope=config.image_scope, page=page_fetcher),
     )
 

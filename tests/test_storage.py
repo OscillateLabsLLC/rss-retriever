@@ -1,10 +1,12 @@
 """Tests for the filesystem storage adapter."""
 
 import json
+from pathlib import Path
 
 import pytest
 
 from rss_retriever.adapters.storage import FileSystemStorage
+from rss_retriever.domain.ports import ImagePort
 
 
 class TestLayout:
@@ -169,9 +171,58 @@ class TestBatchWrites:
 
 
 class TestConfiguration:
+    def test_request_timeout_builds_the_default_image_fetcher(self, tmp_path):
+        assert FileSystemStorage(tmp_path / "store", request_timeout=42).images.timeout == 42
+
     def test_request_timeout_is_injectable(self, tmp_path):
         """Timeout must be a constructor argument, not a module-level global."""
         assert FileSystemStorage(tmp_path / "store", request_timeout=42).request_timeout == 42
 
     def test_request_timeout_defaults(self, tmp_path):
         assert FileSystemStorage(tmp_path / "store").request_timeout == 10
+
+
+class FakeImages(ImagePort):
+    """An image port that answers from memory and remembers what it was asked."""
+
+    def __init__(self, by_url):
+        self.by_url = by_url
+        self.asked = []
+
+    def fetch_many(self, urls):
+        self.asked.append(list(urls))
+        return [self.by_url.get(u) for u in urls]
+
+
+class TestImages:
+    def test_fetched_images_land_in_the_article_dir_and_paths_point_at_them(self, tmp_path, enriched_article):
+        url = enriched_article.images[0].original_url
+        images = FakeImages({url: b"bytes"})
+        storage = FileSystemStorage(tmp_path / "store", images=images)
+
+        storage.save_article(enriched_article)
+
+        saved = tmp_path / "store" / enriched_article.id / "images" / Path(enriched_article.images[0].local_path).name
+        assert saved.read_bytes() == b"bytes"
+        assert enriched_article.images[0].local_path == f"images/{saved.name}"
+        assert images.asked == [[url]]
+
+    def test_failed_image_keeps_its_bare_path_and_writes_nothing(self, tmp_path, enriched_article):
+        before = enriched_article.images[0].local_path
+        storage = FileSystemStorage(tmp_path / "store", images=FakeImages({}))
+
+        storage.save_article(enriched_article)
+
+        assert enriched_article.images[0].local_path == before
+        assert not any((tmp_path / "store" / enriched_article.id / "images").iterdir())
+
+    def test_images_already_on_disk_are_not_fetched_again(self, tmp_path, enriched_article):
+        images = FakeImages({})
+        storage = FileSystemStorage(tmp_path / "store", images=images)
+        images_dir = tmp_path / "store" / enriched_article.id / "images"
+        images_dir.mkdir(parents=True)
+        (images_dir / enriched_article.images[0].local_path).write_bytes(b"already here")
+
+        storage.save_article(enriched_article)
+
+        assert images.asked == []
